@@ -2,25 +2,38 @@
 
 import os
 import json
-from datasets import Dataset, DatasetDict, load_dataset
+import gzip
+from datasets import Dataset
 
 def preprocess_data(language, dataset_type):
     """
     Preprocess the CodeSearchNet dataset for a specific language and dataset type.
     """
-    data_dir = f'path/to/codesearchnet/{language}/{dataset_type}'
+    # Navigate from the scripts directory to the datasets directory
+    base_path = '../../../../..'
+    data_dir = f'{base_path}/{language}_data/{language}/final/jsonl/{dataset_type}'
+    
+    # Debug: Print the data directory being processed
+    print(f"Processing directory: {data_dir}")
+    
     files = [f for f in os.listdir(data_dir) if f.endswith('.jsonl.gz')]
+    
+    # Debug: Print the files found
+    print(f"Found files: {files}")
 
     all_samples = []
     for file in files:
         file_path = os.path.join(data_dir, file)
-        with open(file_path, 'r') as f:
+        with gzip.open(file_path, 'rt', encoding='utf-8') as f:
             for line in f:
                 sample = json.loads(line)
                 code = sample.get('code', '')
                 description = sample.get('docstring', '')
                 if code and description:
                     all_samples.append({'code': code, 'description': description})
+    
+    # Debug: Print the number of samples collected
+    print(f"Collected {len(all_samples)} samples for {language} - {dataset_type}")
 
     return Dataset.from_list(all_samples)
 

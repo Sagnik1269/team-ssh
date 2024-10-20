@@ -1,5 +1,4 @@
-# semantic_search.py
-
+import sys
 from transformers import AutoTokenizer, AutoModel
 import torch
 import numpy as np
@@ -24,7 +23,7 @@ def semantic_search(query, code_embeddings, model, tokenizer, dataset, top_k=5):
     top_indices = np.argsort(similarities[0])[::-1][:top_k]
     return top_indices, similarities[0][top_indices]
 
-def main():
+def main(query, lang):
     # Load the pre-trained model and tokenizer  
     model_name = "microsoft/codebert-base"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -36,20 +35,23 @@ def main():
     # Load the processed dataset
     dataset = load_from_disk('processed_dataset')
 
-    while True:
-        query = input("Enter your search query (or type 'exit' to quit): ")
-        if query.lower() == 'exit':
-            break
-
-        # Perform semantic search
-        top_indices, scores = semantic_search(query, code_embeddings, model, tokenizer, dataset)
-        print(f"\nTop {len(top_indices)} results for query: '{query}'\n")
-        for idx, score in zip(top_indices, scores):
-            idx = int(idx)  # Convert numpy.int64 to Python int
-            print(f"Index: {idx}, Similarity Score: {score:.4f}")
-            print(f"Code Snippet:\n{dataset[idx]['code']}\n")
-            print(f"Description:\n{dataset[idx]['description']}\n")
-            print("-" * 80)
+    # Perform semantic search
+    top_indices, scores = semantic_search(query, code_embeddings, model, tokenizer, dataset)
+    
+    result = []
+    for idx, score in zip(top_indices, scores):
+        idx = int(idx)  # Convert numpy.int64 to Python int
+        result.append({
+            "index": idx,
+            "score": float(score),
+            "code": dataset[idx]['code'],
+            "description": dataset[idx]['description']
+        })
+    
+    return result
 
 if __name__ == "__main__":
-    main()
+    query = sys.argv[1]
+    lang = sys.argv[2]
+    results = main(query, lang)
+    print(results)
